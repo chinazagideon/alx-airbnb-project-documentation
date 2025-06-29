@@ -126,7 +126,7 @@ Each service is an independently deployable unit, communicating asynchronously v
 
 -----
 
-## 🛠️ Technical Requirements
+## Technical Requirements
 
   * **Databases**: PostgreSQL, MySQL (primary); potential for NoSQL (e.g., MongoDB, Cassandra) for specific services.
   * **API Development**: `RESTful APIs` primarily, with consideration for `GraphQL` via the API Gateway.
