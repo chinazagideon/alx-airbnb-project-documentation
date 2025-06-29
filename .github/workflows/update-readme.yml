@@ -49,6 +49,7 @@ jobs:
           found_start && !found_end { next }
           { print }
           ' user-stories/README.md > user-stories/README.md.tmp && mv user-stories/README.md.tmp user-stories/README.md
+          ' README.md > README.md.tmp && mv README.md.tmp README.md
 
       - name: Commit and Push if changes
         uses: stefanzweifel/git-auto-commit-action@v5

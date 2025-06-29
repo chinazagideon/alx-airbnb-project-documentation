@@ -12,3 +12,6 @@ The core objective is to simulate a real-world, high-traffic application, demons
 
 ## User Stories
 
+<!-- USER_STORIES_START -->
+<!-- Auto-updated content will appear here -->
+<!-- USER_STORIES_END -->
