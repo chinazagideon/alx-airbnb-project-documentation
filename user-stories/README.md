@@ -7,4 +7,6 @@ The core objective is to simulate a real-world, high-traffic application, demons
 
 ## User Stories
 
+{print}
+
 ... (More README content, if any) ...

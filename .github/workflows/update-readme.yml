@@ -5,8 +5,8 @@ on:
     branches:
       - main # Or 'master' if that's your default branch
     paths:
-      - '/user-stories/user-stories.md' # Trigger only when user-stories.md changes
-      - '/user-stories/README.md'       # Also trigger if README.md is directly changed (e.g., to restore previous content)
+      - 'user-stories/user-stories.md' # Trigger only when user-stories.md changes
+      - 'user-stories/README.md'       # Also trigger if README.md is directly changed (e.g., to restore previous content)
   workflow_dispatch: # Allows manual triggering from GitHub Actions tab
 
 jobs:
@@ -19,8 +19,8 @@ jobs:
       - name: Read User Stories content
         id: user_stories_content
         run: |
-          # Read the content of user-stories.md
-          USER_STORIES_CONTENT=$(cat user-stories.md)
+          # Read the content of 'user-stories/user-stories.md'
+          USER_STORIES_CONTENT=$(cat user-stories/user-stories.md)
           # Set it as an output for subsequent steps
           echo "USER_STORIES_CONTENT<<EOF" >> $GITHUB_OUTPUT
           echo "${USER_STORIES_CONTENT}" >> $GITHUB_OUTPUT
@@ -44,7 +44,7 @@ jobs:
           $0 ~ end { print; found_end=1; next }
           found_start && !found_end { next }
           { print }
-          ' README.md > README.md.tmp && mv README.md.tmp README.md
+          ' user-stories/README.md > user-stories/README.md.tmp && mv user-stories/README.md.tmp README.md
 
       - name: Commit and Push if changes
         uses: stefanzweifel/git-auto-commit-action@v5
