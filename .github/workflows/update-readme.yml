@@ -29,8 +29,8 @@ jobs:
       - name: Update README.md
         run: |
           # Define markers in README.md where content should be inserted
-          START_MARKER=""
-          END_MARKER=""
+          START_MARKER="" #
+          END_MARKER="" #
 
           # Use awk to replace the content between markers
           # This script will:
@@ -44,7 +44,7 @@ jobs:
           $0 ~ end { print; found_end=1; next }
           found_start && !found_end { next }
           { print }
-          ' user-stories/README.md > user-stories/README.md.tmp && mv user-stories/README.md.tmp README.md
+          ' user-stories/README.md > user-stories/README.md.tmp && mv user-stories/README.md.tmp user-stories/README.md
 
       - name: Commit and Push if changes
         uses: stefanzweifel/git-auto-commit-action@v5
