@@ -13,7 +13,7 @@ permissions: # <--- ADD THIS BLOCK
       contents: write # <--- This grants write access to the repository content
 
 jobs:
-  update-requirements:
+  update-readme:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,9 +29,9 @@ jobs:
           echo "${REQUIREMENTS_CONTENT}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Update requirements.md
+      - name: Update README.md
         run: |
-          # Define markers in requirements.md where content should be inserted
+          # Define markers in README.md where content should be inserted
           START_MARKER="<!-- REQUIREMENTS_START -->"
           END_MARKER="<!-- REQUIREMENTS_END -->"
 
@@ -43,7 +43,7 @@ jobs:
           # 3. Print END_MARKER
           # 4. Skip lines until END_MARKER (if existing content)
           # 5. Print remaining lines after END_MARKER
-          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="${{ steps.requirements_content.outputs.REQUIREMENTS_CONTENT }}" '
+          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="${{ steps.user_stories_content.outputs.USER_STORIES_CONTENT }}" '
           $0 ~ start { print; print content; found_start=1; next }
           $0 ~ end { print; found_end=1; next }
           found_start && !found_end { next }
@@ -53,5 +53,5 @@ jobs:
       - name: Commit and Push if changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Docs: Auto-update requirements.md with requirements"
+          commit_message: "Docs: Auto-update README.md with requirements"
           branch: ${{ github.ref_name }} # Push to the same branch that triggered the action
