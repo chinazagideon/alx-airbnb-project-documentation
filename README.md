@@ -12,5 +12,5 @@ The core objective is to simulate a real-world, high-traffic application, demons
 
 ## Requirements
 <!-- REQUIREMENTS_START -->
-<!-- Auto-updated content will appear here -->
+
 <!-- REQUIREMENTS_END -->
