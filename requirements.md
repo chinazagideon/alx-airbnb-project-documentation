@@ -25,16 +25,16 @@ This service handles all user-related operations, including registration, login,
     }
     ```
   * **Validation Rules:**
-      * `email`: Required, valid email format, must be unique across all users. Max length 255.
+      * `email`: Required, valid email format, must be unique across all users. Max length 100.
       * `password`: Required, min 8 characters, at least one uppercase letter, one lowercase letter, one number, one special character. Max length 255 (plaintext, will be hashed).
       * `first_name`: Required, min 2 chars, max 50 chars.
       * `last_name`: Required, min 2 chars, max 50 chars.
-      * `role`: Required, must be "guest" or "host".
+      * `role`: Required, must be "guest", "host", or "admin". Defaults to "guest".
   * **Output (Response Body - `application/json`):**
       * **Success (HTTP 201 Created):**
         ```json
         {
-            "user_id": "uuid-of-new-user",
+            "user_id": 123,
             "message": "User registered successfully.",
             "token": "jwt.web.token" // JWT for immediate authentication
         }
@@ -70,9 +70,9 @@ This service handles all user-related operations, including registration, login,
       * **Success (HTTP 200 OK):**
         ```json
         {
-            "user_id": "uuid-of-existing-user",
+            "user_id": 123,
             "token": "jwt.web.token", // JWT for subsequent authenticated requests
-            "role": "guest" // or "host"
+            "role": "guest" // or "host" or "admin"
         }
         ```
       * **Error (HTTP 401 Unauthorized):** If credentials are invalid.
@@ -96,26 +96,25 @@ This service handles all user-related operations, including registration, login,
     ```json
     {
         "first_name": "Jonathan",
-        "phone_number": "+2348012345678",
-        "profile_picture_url": "https://cdn.example.com/user/profile_pic.jpg"
+        "last_name": "Smith",
+        "phone_number": "+2348012345678"
     }
     ```
   * **Validation Rules (for `PUT /users/me`):**
       * `first_name`, `last_name`: Optional, min 2 chars, max 50 chars.
-      * `phone_number`: Optional, valid phone number format (e.g., E.164).
-      * `profile_picture_url`: Optional, valid URL format.
+      * `phone_number`: Optional, valid phone number format, max 20 chars.
       * `email`, `password`, `role`: Cannot be changed via this endpoint.
   * **Output (Response Body - `application/json`):**
       * **Success (HTTP 200 OK):**
         ```json
         {
-            "user_id": "uuid-of-user",
+            "user_id": 123,
             "email": "user@example.com",
             "first_name": "Jonathan",
-            "last_name": "Doe",
+            "last_name": "Smith",
             "phone_number": "+2348012345678",
-            "profile_picture_url": "https://cdn.example.com/user/profile_pic.jpg",
-            "role": "guest"
+            "role": "guest",
+            "created_at": "2024-01-01T10:00:00Z"
         }
         ```
       * **Error (HTTP 401 Unauthorized):** If token is missing/invalid.
@@ -135,44 +134,29 @@ This service manages the lifecycle of property listings created by hosts.
 
 ### **2.1. Create Property Listing**
 
-  * **Endpoint:** `POST /listings`
+  * **Endpoint:** `POST /properties`
   * **Description:** Allows a host to create a new property listing.
   * **Authorization:** Requires valid JWT in `Authorization: Bearer <token>` header, and user must have `host` role.
   * **Input (Request Body - `application/json`):**
     ```json
     {
-        "title": "Cozy Apartment in City Center",
+        "name": "Cozy Apartment in City Center",
         "description": "A charming and modern apartment perfect for your stay.",
-        "address": "123 Main St",
-        "city": "Abuja",
-        "state": "FCT",
-        "zip_code": "900001",
-        "country": "Nigeria",
-        "latitude": 9.0765,
-        "longitude": 7.3986,
-        "price_per_night": 75.50,
-        "num_bedrooms": 1,
-        "num_bathrooms": 1,
-        "max_guests": 2,
-        "amenities": ["Wifi", "Kitchen", "Air Conditioning"],
-        "image_urls": ["url_from_file_service_1", "url_from_file_service_2"]
+        "location": "123 Main St, Abuja, FCT, Nigeria",
+        "price_per_night": 75.50
     }
     ```
   * **Validation Rules:**
-      * All fields are `required` except `amenities` and `image_urls` (though at least one image is recommended).
-      * `title`: Min 10 chars, max 100 chars.
-      * `description`: Min 50 chars, max 1000 chars.
-      * `address`, `city`, `state`, `zip_code`, `country`: Standard string validation, max 100 chars.
-      * `latitude`, `longitude`: Valid geographical coordinates (e.g., -90 to 90 for latitude, -180 to 180 for longitude).
-      * `price_per_night`: Numeric, positive value.
-      * `num_bedrooms`, `num_bathrooms`, `max_guests`: Integer, positive value.
-      * `amenities`: Array of strings, each string max 50 chars.
-      * `image_urls`: Array of valid URLs, max 10 URLs. (Assumes images are uploaded via a separate file service first).
+      * All fields are `required`.
+      * `name`: Min 5 chars, max 100 chars.
+      * `description`: Min 20 chars, max 65535 chars (TEXT field).
+      * `location`: Min 10 chars, max 255 chars.
+      * `price_per_night`: Numeric, positive value, max 10 digits with 2 decimal places.
   * **Output (Response Body - `application/json`):**
       * **Success (HTTP 201 Created):**
         ```json
         {
-            "listing_id": "uuid-of-new-listing",
+            "property_id": 456,
             "message": "Property listing created successfully."
         }
         ```
@@ -185,63 +169,48 @@ This service manages the lifecycle of property listings created by hosts.
 ### **2.2. Get Property Listings (Single & List)**
 
   * **Endpoints:**
-      * `GET /listings/{id}`: Retrieve details of a single listing.
-      * `GET /listings`: Retrieve a list of listings with optional filters.
+      * `GET /properties/{id}`: Retrieve details of a single listing.
+      * `GET /properties`: Retrieve a list of listings with optional filters.
   * **Description:** Allows users to view property details or browse/search listings.
   * **Authorization:** No authentication required for public listings (can be public or authenticated for more details).
-  * **Input (for `GET /listings` - Query Parameters):**
-      * `city`: String, filter by city.
+  * **Input (for `GET /properties` - Query Parameters):**
+      * `location`: String, filter by location (partial match).
       * `min_price`, `max_price`: Numeric, price range.
-      * `num_guests`: Integer, filter by max guests.
-      * `amenities`: Comma-separated strings, filter by amenities.
-      * `check_in_date`, `check_out_date`: Date (YYYY-MM-DD), filter by availability (requires interaction with Booking Service).
+      * `host_id`: Integer, filter by host.
       * `page`: Integer, default 1.
       * `limit`: Integer, default 10, max 100.
-      * `sort_by`: String (e.g., `price_asc`, `price_desc`, `popularity`).
+      * `sort_by`: String (e.g., `price_asc`, `price_desc`, `created_at_desc`).
   * **Output (Response Body - `application/json`):**
-      * **Success (HTTP 200 OK for `GET /listings/{id}`):**
+      * **Success (HTTP 200 OK for `GET /properties/{id}`):**
         ```json
         {
-            "listing_id": "uuid-of-listing",
-            "host_id": "uuid-of-host",
-            "title": "Cozy Apartment...",
-            "description": "...",
-            "address": "...",
-            "city": "...",
-            "state": "...",
-            "zip_code": "...",
-            "country": "...",
-            "latitude": 9.0765,
-            "longitude": 7.3986,
+            "property_id": 456,
+            "host_id": 123,
+            "name": "Cozy Apartment in City Center",
+            "description": "A charming and modern apartment perfect for your stay.",
+            "location": "123 Main St, Abuja, FCT, Nigeria",
             "price_per_night": 75.50,
-            "num_bedrooms": 1,
-            "num_bathrooms": 1,
-            "max_guests": 2,
-            "amenities": ["Wifi", "Kitchen", "Air Conditioning"],
-            "image_urls": ["url_1", "url_2"],
-            "average_rating": 4.5, // From Review Service
-            "total_reviews": 10,    // From Review Service
             "status": "available",  // e.g., published, unpublished
             "created_at": "2024-01-01T10:00:00Z",
             "updated_at": "2024-01-01T10:00:00Z"
         }
         ```
-      * **Success (HTTP 200 OK for `GET /listings`):** An array of listing objects, potentially paginated.
+      * **Success (HTTP 200 OK for `GET /properties`):** An array of property objects, potentially paginated.
         ```json
         {
-            "listings": [
-                { "listing_id": "uuid-1", "title": "...", "price_per_night": 100, ... },
-                { "listing_id": "uuid-2", "title": "...", "price_per_night": 120, ... }
+            "properties": [
+                { "property_id": 456, "name": "...", "price_per_night": 75.50, ... },
+                { "property_id": 457, "name": "...", "price_per_night": 120.00, ... }
             ],
             "total_count": 150,
             "page": 1,
             "limit": 10
         }
         ```
-      * **Error (HTTP 404 Not Found):** For `GET /listings/{id}` if ID does not exist.
+      * **Error (HTTP 404 Not Found):** For `GET /properties/{id}` if ID does not exist.
       * **Error (HTTP 400 Bad Request):** For invalid query parameters.
   * **Performance Criteria:**
-      * **Latency:** Average \< 100ms for single get; \< 150ms for list/search (for basic filtering, AI search will have its own criteria).
+      * **Latency:** Average \< 100ms for single get; \< 150ms for list/search.
       * **Throughput:** Capable of handling \> 500 requests/second.
 
 -----
@@ -260,36 +229,33 @@ This service manages the creation, modification, and cancellation of property bo
   * **Input (Request Body - `application/json`):**
     ```json
     {
-        "listing_id": "uuid-of-listing",
-        "check_in_date": "2025-07-10",
-        "check_out_date": "2025-07-15",
-        "num_guests": 2
+        "property_id": 456,
+        "start_date": "2025-07-10",
+        "end_date": "2025-07-15"
     }
     ```
   * **Validation Rules:**
-      * `listing_id`: Required, must be a valid, existing, and available listing.
-      * `check_in_date`, `check_out_date`: Required, valid date format (YYYY-MM-DD), `check_in_date` must be before `check_out_date`, both dates must be in the future.
-      * `num_guests`: Required, positive integer, must be less than or equal to the listing's `max_guests`.
+      * `property_id`: Required, must be a valid, existing, and available property.
+      * `start_date`, `end_date`: Required, valid date format (YYYY-MM-DD), `start_date` must be before `end_date`, both dates must be in the future.
       * **Availability Check (Critical):** The system must verify that the property is available for the entire requested date range, considering existing bookings. This involves querying `BookingDB` for conflicts.
-      * **Price Calculation:** The total price for the stay (price per night \* number of nights + fees) is calculated internally by the service.
+      * **Price Calculation:** The `locked_price_per_night` is set to the current property price at the time of booking.
   * **Output (Response Body - `application/json`):**
       * **Success (HTTP 201 Created):**
         ```json
         {
-            "booking_id": "uuid-of-new-booking",
-            "guest_id": "uuid-of-guest",
-            "listing_id": "uuid-of-listing",
-            "check_in_date": "2025-07-10",
-            "check_out_date": "2025-07-15",
-            "num_guests": 2,
-            "total_price": 377.50, // Calculated by the system
-            "status": "pending_payment", // Initial status
+            "booking_id": 789,
+            "user_id": 123,
+            "property_id": 456,
+            "start_date": "2025-07-10",
+            "end_date": "2025-07-15",
+            "locked_price_per_night": 75.50,
+            "status": "pending", // Initial status
             "message": "Booking initiated. Proceed to payment."
         }
         ```
       * **Error (HTTP 400 Bad Request):** For validation or availability failures.
       * **Error (HTTP 403 Forbidden):** If user is not a guest.
-      * **Error (HTTP 404 Not Found):** If `listing_id` does not exist.
+      * **Error (HTTP 404 Not Found):** If `property_id` does not exist.
   * **Performance Criteria:**
       * **Latency:** Average \< 200ms (due to availability checks and price calculation).
       * **Throughput:** Capable of handling \> 200 bookings/second.
@@ -302,26 +268,22 @@ This service manages the creation, modification, and cancellation of property bo
   * **Description:** Allows guests to view their own bookings, and hosts to view bookings for their properties. Admins can view any booking.
   * **Authorization:** Requires valid JWT. Only the associated guest, host, or an admin can access booking details.
   * **Input (for `GET /bookings` - Query Parameters):**
-      * `user_id`: String (optional, filter by guest).
-      * `host_id`: String (optional, filter by host).
-      * `status`: String (e.g., `pending`, `confirmed`, `cancelled`, `completed`).
+      * `user_id`: Integer (optional, filter by guest).
+      * `property_id`: Integer (optional, filter by property).
+      * `status`: String (e.g., `pending`, `confirmed`, `canceled`).
       * `page`, `limit`: Pagination parameters.
   * **Output (Response Body - `application/json`):**
       * **Success (HTTP 200 OK for `GET /bookings/{id}`):**
         ```json
         {
-            "booking_id": "uuid-of-booking",
-            "guest_id": "uuid-of-guest",
-            "host_id": "uuid-of-host",
-            "listing_id": "uuid-of-listing",
-            "check_in_date": "2025-07-10",
-            "check_out_date": "2025-07-15",
-            "num_guests": 2,
-            "total_price": 377.50,
-            "status": "confirmed", // e.g., pending_payment, confirmed, cancelled, completed
-            "payment_status": "paid", // From Payment Service
-            "created_at": "2025-06-29T10:00:00Z",
-            "updated_at": "2025-06-29T10:05:00Z"
+            "booking_id": 789,
+            "user_id": 123,
+            "property_id": 456,
+            "start_date": "2025-07-10",
+            "end_date": "2025-07-15",
+            "locked_price_per_night": 75.50,
+            "status": "confirmed", // e.g., pending, confirmed, canceled
+            "created_at": "2025-06-29T10:00:00Z"
         }
         ```
       * **Success (HTTP 200 OK for `GET /bookings`):** An array of booking objects.
@@ -345,14 +307,14 @@ This service manages the creation, modification, and cancellation of property bo
     ```
   * **Validation Rules:**
       * `booking_id`: Required, must exist.
-      * **Status Check:** Only bookings with certain statuses (e.g., `pending_payment`, `confirmed`) can be cancelled.
+      * **Status Check:** Only bookings with certain statuses (e.g., `pending`, `confirmed`) can be cancelled.
       * **Cancellation Policy Enforcement:** System applies relevant cancellation policy rules (e.g., full refund within 24h, 50% refund after 24h). This might trigger a refund process with the Payment Service.
   * **Output (Response Body - `application/json`):**
       * **Success (HTTP 200 OK):**
         ```json
         {
-            "booking_id": "uuid-of-cancelled-booking",
-            "status": "cancelled",
+            "booking_id": 789,
+            "status": "canceled",
             "refund_amount": 188.75, // Amount refunded based on policy
             "message": "Booking cancelled successfully. Refund initiated."
         }
@@ -364,5 +326,168 @@ This service manages the creation, modification, and cancellation of property bo
   * **Performance Criteria:**
       * **Latency:** Average \< 120ms (due to policy checks and potential refund initiation).
       * **Throughput:** Capable of handling \> 200 requests/second.
+
+-----
+
+## 4\. Payment System
+
+**Service:** `Payment Service`
+
+This service manages payment processing for bookings.
+
+### **4.1. Process Payment**
+
+  * **Endpoint:** `POST /payments`
+  * **Description:** Processes payment for a booking.
+  * **Authorization:** Requires valid JWT in `Authorization: Bearer <token>` header.
+  * **Input (Request Body - `application/json`):**
+    ```json
+    {
+        "booking_id": 789,
+        "amount": 377.50,
+        "payment_method": "credit_card"
+    }
+    ```
+  * **Validation Rules:**
+      * `booking_id`: Required, must be a valid existing booking.
+      * `amount`: Required, positive decimal value, max 10 digits with 2 decimal places.
+      * `payment_method`: Required, must be "credit_card", "paypal", or "stripe".
+      * `payment_date`: Automatically set to current date.
+  * **Output (Response Body - `application/json`):**
+      * **Success (HTTP 201 Created):**
+        ```json
+        {
+            "payment_id": 101,
+            "booking_id": 789,
+            "amount": 377.50,
+            "payment_date": "2025-06-29",
+            "payment_method": "credit_card",
+            "message": "Payment processed successfully."
+        }
+        ```
+      * **Error (HTTP 400 Bad Request):** For validation failures.
+      * **Error (HTTP 404 Not Found):** If `booking_id` does not exist.
+  * **Performance Criteria:**
+      * **Latency:** Average \< 300ms (due to payment processing).
+      * **Throughput:** Capable of handling \> 100 payments/second.
+
+-----
+
+## 5\. Review System
+
+**Service:** `Review Service`
+
+This service manages property reviews and ratings.
+
+### **5.1. Create Review**
+
+  * **Endpoint:** `POST /reviews`
+  * **Description:** Allows a guest to create a review for a property they've stayed at.
+  * **Authorization:** Requires valid JWT in `Authorization: Bearer <token>` header.
+  * **Input (Request Body - `application/json`):**
+    ```json
+    {
+        "property_id": 456,
+        "rating": 5,
+        "comment": "Excellent stay! The apartment was clean and well-located."
+    }
+    ```
+  * **Validation Rules:**
+      * `property_id`: Required, must be a valid existing property.
+      * `rating`: Required, integer between 1 and 5.
+      * `comment`: Required, min 10 chars, max 65535 chars (TEXT field).
+      * **Eligibility Check:** User must have completed a booking for this property.
+  * **Output (Response Body - `application/json`):**
+      * **Success (HTTP 201 Created):**
+        ```json
+        {
+            "review_id": 202,
+            "property_id": 456,
+            "user_id": 123,
+            "rating": 5,
+            "comment": "Excellent stay! The apartment was clean and well-located.",
+            "created_at": "2025-06-29T10:00:00Z",
+            "message": "Review submitted successfully."
+        }
+        ```
+      * **Error (HTTP 400 Bad Request):** For validation failures.
+      * **Error (HTTP 403 Forbidden):** If user is not eligible to review this property.
+  * **Performance Criteria:**
+      * **Latency:** Average \< 100ms.
+      * **Throughput:** Capable of handling \> 200 reviews/second.
+
+-----
+
+## 6\. Messaging System
+
+**Service:** `Message Service`
+
+This service manages communication between users.
+
+### **6.1. Send Message**
+
+  * **Endpoint:** `POST /messages`
+  * **Description:** Allows users to send messages to each other.
+  * **Authorization:** Requires valid JWT in `Authorization: Bearer <token>` header.
+  * **Input (Request Body - `application/json`):**
+    ```json
+    {
+        "recipient_id": 456,
+        "message_body": "Hi! I'm interested in your property. Is it available for next weekend?"
+    }
+    ```
+  * **Validation Rules:**
+      * `recipient_id`: Required, must be a valid existing user ID, cannot be the same as sender.
+      * `message_body`: Required, min 1 char, max 65535 chars (TEXT field).
+      * `sent_at`: Automatically set to current timestamp.
+  * **Output (Response Body - `application/json`):**
+      * **Success (HTTP 201 Created):**
+        ```json
+        {
+            "message_id": 303,
+            "sender_id": 123,
+            "recipient_id": 456,
+            "message_body": "Hi! I'm interested in your property. Is it available for next weekend?",
+            "sent_at": "2025-06-29T10:00:00Z",
+            "message": "Message sent successfully."
+        }
+        ```
+      * **Error (HTTP 400 Bad Request):** For validation failures.
+      * **Error (HTTP 404 Not Found):** If `recipient_id` does not exist.
+  * **Performance Criteria:**
+      * **Latency:** Average \< 50ms.
+      * **Throughput:** Capable of handling \> 500 messages/second.
+
+### **6.2. Get Messages**
+
+  * **Endpoints:**
+      * `GET /messages`: Retrieve messages for the authenticated user.
+  * **Description:** Allows users to view their message conversations.
+  * **Authorization:** Requires valid JWT in `Authorization: Bearer <token>` header.
+  * **Input (Query Parameters):**
+      * `conversation_with`: Integer (optional, filter by specific user).
+      * `page`, `limit`: Pagination parameters.
+  * **Output (Response Body - `application/json`):**
+      * **Success (HTTP 200 OK):**
+        ```json
+        {
+            "messages": [
+                {
+                    "message_id": 303,
+                    "sender_id": 123,
+                    "recipient_id": 456,
+                    "message_body": "Hi! I'm interested in your property.",
+                    "sent_at": "2025-06-29T10:00:00Z"
+                }
+            ],
+            "total_count": 50,
+            "page": 1,
+            "limit": 10
+        }
+        ```
+      * **Error (HTTP 401 Unauthorized):** If token is missing/invalid.
+  * **Performance Criteria:**
+      * **Latency:** Average \< 80ms.
+      * **Throughput:** Capable of handling \> 300 requests/second.
 
 -----
