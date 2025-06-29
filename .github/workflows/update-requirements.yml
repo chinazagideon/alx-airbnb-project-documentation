@@ -5,7 +5,7 @@ on:
     branches:
       - main # Or 'master' if that's your default branch
     paths:
-      - 'requirements.md' # Trigger only when user-stories.md changes
+      - 'requirements.md' # Trigger only when requirements.md changes
       - 'README.md'       # Also trigger if README.md is directly changed (e.g., to restore previous content)
   workflow_dispatch: # Allows manual triggering from GitHub Actions tab
 
@@ -19,36 +19,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Read Requirements content
-        id: requirements_content
+      - name: Update README.md with requirements
         run: |
-          # Read the content of 'requirements.md'
-          REQUIREMENTS_CONTENT=$(cat requirements.md)
-          # Set it as an output for subsequent steps
-          echo "REQUIREMENTS_CONTENT<<EOF" >> $GITHUB_OUTPUT
-          echo "${REQUIREMENTS_CONTENT}" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Update README.md
-        run: |
-          # Define markers in README.md where content should be inserted
-          START_MARKER="<!-- REQUIREMENTS_START -->"
-          END_MARKER="<!-- REQUIREMENTS_END -->"
-
-
-          # Use awk to replace the content between markers
-          # This script will:
-          # 1. Print lines until START_MARKER
-          # 2. Print the new content
-          # 3. Print END_MARKER
-          # 4. Skip lines until END_MARKER (if existing content)
-          # 5. Print remaining lines after END_MARKER
-          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="${{ steps.requirements_content.outputs.REQUIREMENTS_CONTENT }}" '
-          $0 ~ start { print; print content; found_start=1; next }
-          $0 ~ end { print; found_end=1; next }
-          found_start && !found_end { next }
-          { print }
-          ' README.md > README.md.tmp && mv README.md.tmp README.md
+          python3 -c "
+          import re
+          
+          # Read the requirements content
+          with open('requirements.md', 'r', encoding='utf-8') as f:
+              requirements_content = f.read()
+          
+          # Read the current README
+          with open('README.md', 'r', encoding='utf-8') as f:
+              readme_content = f.read()
+          
+          # Define the pattern to match content between markers
+          pattern = r'(<!-- REQUIREMENTS_START -->).*?(<!-- REQUIREMENTS_END -->)'
+          
+          # Create the replacement content
+          replacement = r'\1\n\n' + requirements_content + r'\n\n\2'
+          
+          # Replace the content
+          new_readme_content = re.sub(pattern, replacement, readme_content, flags=re.DOTALL)
+          
+          # Write the updated README
+          with open('README.md', 'w', encoding='utf-8') as f:
+              f.write(new_readme_content)
+          
+          print('README.md updated successfully')
+          "
 
       - name: Commit and Push if changes
         uses: stefanzweifel/git-auto-commit-action@v5
