@@ -1,39 +1,39 @@
-name: Sync User Stories to README
+name: Sync Requirements to README
 
 on:
   push:
     branches:
       - main # Or 'master' if that's your default branch
     paths:
-      - 'user-stories/user-stories.md' # Trigger only when user-stories.md changes
-      - 'user-stories/README.md'       # Also trigger if README.md is directly changed (e.g., to restore previous content)
+      - 'requirements.md' # Trigger only when user-stories.md changes
+      - 'README.md'       # Also trigger if README.md is directly changed (e.g., to restore previous content)
   workflow_dispatch: # Allows manual triggering from GitHub Actions tab
 
 permissions: # <--- ADD THIS BLOCK
       contents: write # <--- This grants write access to the repository content
 
 jobs:
-  update-readme:
+  update-requirements:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Read User Stories content
-        id: user_stories_content
+      - name: Read Requirements content
+        id: requirements_content
         run: |
-          # Read the content of 'user-stories/user-stories.md'
-          USER_STORIES_CONTENT=$(cat user-stories/user-stories.md)
+          # Read the content of 'requirements.md'
+          REQUIREMENTS_CONTENT=$(cat requirements.md)
           # Set it as an output for subsequent steps
-          echo "USER_STORIES_CONTENT<<EOF" >> $GITHUB_OUTPUT
-          echo "${USER_STORIES_CONTENT}" >> $GITHUB_OUTPUT
+          echo "REQUIREMENTS_CONTENT<<EOF" >> $GITHUB_OUTPUT
+          echo "${REQUIREMENTS_CONTENT}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Update README.md
+      - name: Update requirements.md
         run: |
-          # Define markers in README.md where content should be inserted
-          START_MARKER="<!-- USER_STORIES_START -->"
-          END_MARKER="<!-- USER_STORIES_END -->"
+          # Define markers in requirements.md where content should be inserted
+          START_MARKER="<!-- REQUIREMENTS_START -->"
+          END_MARKER="<!-- REQUIREMENTS_END -->"
 
 
           # Use awk to replace the content between markers
@@ -43,15 +43,15 @@ jobs:
           # 3. Print END_MARKER
           # 4. Skip lines until END_MARKER (if existing content)
           # 5. Print remaining lines after END_MARKER
-          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="${{ steps.user_stories_content.outputs.USER_STORIES_CONTENT }}" '
+          awk -v start="$START_MARKER" -v end="$END_MARKER" -v content="${{ steps.requirements_content.outputs.REQUIREMENTS_CONTENT }}" '
           $0 ~ start { print; print content; found_start=1; next }
           $0 ~ end { print; found_end=1; next }
           found_start && !found_end { next }
           { print }
-          ' user-stories/README.md > user-stories/README.md.tmp && mv user-stories/README.md.tmp user-stories/README.md
+          ' README.md > README.md.tmp && mv README.md.tmp README.md
 
       - name: Commit and Push if changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Docs: Auto-update README.md with user stories"
+          commit_message: "Docs: Auto-update requirements.md with requirements"
           branch: ${{ github.ref_name }} # Push to the same branch that triggered the action
