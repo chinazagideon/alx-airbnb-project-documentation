@@ -6,7 +6,5 @@ This project is an ambitious, enterprise-scalable backend for an Airbnb-like ren
 The core objective is to simulate a real-world, high-traffic application, demonstrating proficiency in scalable system design, secure API development, asynchronous communication, and intelligent data processing.
 
 ## User Stories
-
-{print}
-
-... (More README content, if any) ...
+``
+``

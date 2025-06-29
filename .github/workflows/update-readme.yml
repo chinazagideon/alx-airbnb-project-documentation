@@ -29,8 +29,8 @@ jobs:
       - name: Update README.md
         run: |
           # Define markers in README.md where content should be inserted
-          START_MARKER="" #
-          END_MARKER="" #
+          START_MARKER=`` #
+          END_MARKER=`` #
 
           # Use awk to replace the content between markers
           # This script will:
