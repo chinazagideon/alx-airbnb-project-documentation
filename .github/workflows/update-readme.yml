@@ -9,6 +9,9 @@ on:
       - 'user-stories/README.md'       # Also trigger if README.md is directly changed (e.g., to restore previous content)
   workflow_dispatch: # Allows manual triggering from GitHub Actions tab
 
+permissions: # <--- ADD THIS BLOCK
+      contents: write # <--- This grants write access to the repository content
+
 jobs:
   update-readme:
     runs-on: ubuntu-latest
@@ -29,8 +32,9 @@ jobs:
       - name: Update README.md
         run: |
           # Define markers in README.md where content should be inserted
-          START_MARKER=`` #
-          END_MARKER=`` #
+          START_MARKER="<!-- USER_STORIES_START -->"
+          END_MARKER="<!-- USER_STORIES_END -->"
+
 
           # Use awk to replace the content between markers
           # This script will:
